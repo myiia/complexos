@@ -9,12 +9,11 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from scipy.stats import mode
 
-# === CONFIGURAÇÃO DE CAMINHOS ===
+
 pasta_landscapes = r"C:\Users\Yasmin\OneDrive\Imagens\Documentos\complexos\saidas\landscape_csv_manual"
 pasta_resultados = os.path.join(pasta_landscapes, 'resultados_agrupamento')
 os.makedirs(pasta_resultados, exist_ok=True)
 
-# === CARREGAMENTO DOS DADOS ===
 arquivos = sorted([f for f in os.listdir(pasta_landscapes) if f.endswith('.csv')])
 dados = []
 nomes_arquivos = []
@@ -26,16 +25,16 @@ for nome_arquivo in arquivos:
     dados.append(vetor)
     nomes_arquivos.append(nome_arquivo)
 
-# === PADRONIZAÇÃO DOS VETORES (PADDING) ===
+
 tamanho_max = max(len(v) for v in dados)
 dados_padronizados = np.array([np.pad(v, (0, tamanho_max - len(v)), mode='constant') for v in dados])
 X = np.array(dados_padronizados)
 
-# === NORMALIZAÇÃO ===
+
 scaler = StandardScaler()
 X_normalizado = scaler.fit_transform(X)
 
-# === ESCOLHA DO MELHOR k COM SILHOUETTE ===
+
 scores = []
 ks = range(2, 26)
 for k in ks:
@@ -45,7 +44,7 @@ for k in ks:
     scores.append(score)
     print(f"k = {k} → Silhouette = {score:.4f}")
 
-# Salva curva da Silhouette
+
 df_scores = pd.DataFrame({'k': list(ks), 'silhouette_score': scores})
 df_scores.to_csv(os.path.join(pasta_resultados, 'silhouette_scores.csv'), index=False)
 
@@ -59,18 +58,18 @@ plt.tight_layout()
 plt.savefig(os.path.join(pasta_resultados, 'silhouette_plot.png'))
 plt.show()
 
-# === APLICAÇÃO DO KMeans COM O MELHOR k ===
+
 melhor_k = ks[np.argmax(scores)]
 print(f"\nMelhor número de clusters: k = {melhor_k}")
 
 kmeans_final = KMeans(n_clusters=melhor_k, random_state=0)
 rotulos_finais = kmeans_final.fit_predict(X_normalizado)
 
-# Salva os rótulos dos clusters
+
 df_rotulos = pd.DataFrame({'arquivo': nomes_arquivos, 'cluster': rotulos_finais})
 df_rotulos.to_csv(os.path.join(pasta_resultados, 'labels_clusters.csv'), index=False)
 
-# === RÓTULOS REAIS ===
+
 rotulos_reais_dict = {}
 for nome in nomes_arquivos:
     prefixo = nome.lower().split('_')[0]
@@ -85,7 +84,7 @@ rotulos_reais = [rotulos_reais_dict[nome] for nome in nomes_arquivos]
 le = LabelEncoder()
 rotulos_reais_int = le.fit_transform(rotulos_reais)
 
-# === REALINHAMENTO DOS CLUSTERS COM OS RÓTULOS REAIS ===
+
 def realinhar_clusters(rotulos_pred, rotulos_reais):
     rotulos_alinhados = np.zeros_like(rotulos_pred)
     for cluster in np.unique(rotulos_pred):
@@ -95,7 +94,7 @@ def realinhar_clusters(rotulos_pred, rotulos_reais):
 
 rotulos_finais_alinhados = realinhar_clusters(rotulos_finais, rotulos_reais_int)
 
-# === MATRIZ DE CONFUSÃO ALINHADA ===
+
 matriz = confusion_matrix(rotulos_reais_int, rotulos_finais_alinhados)
 disp = ConfusionMatrixDisplay(confusion_matrix=matriz, display_labels=le.classes_)
 disp.plot(cmap='Blues')
@@ -106,7 +105,7 @@ plt.show()
 
 
 
-# === VISUALIZAÇÃO COM PCA ===
+
 pca = PCA(n_components=2)
 X_pca = pca.fit_transform(X_normalizado)
 
